@@ -1,0 +1,13 @@
+[
+    {
+        "name": "MEAT 40",
+        "url": "https://www.start.gg/tournament/meat-40/details",
+        "weight": 16
+    },
+    {
+        "name": "MEAT 39",
+        "slug": "meat-39",
+        "url": "https://www.start.gg/tournament/meat-39/details",
+        "weight": 16
+    }
+]
