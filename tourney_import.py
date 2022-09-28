@@ -50,16 +50,25 @@ tourn_database  = open('database_tournaments.csv', 'w+')
 tourn_writer    = csv.writer(tourn_database); tourn_writer.writerow(['Tournament Name', 'Date', 'Number of Entrants', 'Tournament URL', 'Top-8'])
 player_database = open('database_players.csv', 'w+')
 player_writer   = csv.writer(player_database); player_writer.writerow(['Tag', 'Known Alts', 'Tournament: Placing'])
+head2head_sets  = open('database_head2heads.csv', 'w+')
+head2head_games = open('database_head2heads_games.csv', 'w+')
+head2head_sets_writer  = csv.writer(head2head_sets)
+head2head_games_writer = csv.writer(head2head_games)
 
 smash = pysmashgg.SmashGG(authToken, True)
 
 client = GraphQLClient('https://api.start.gg/gql/alpha')
 client.inject_token('Bearer ' + authToken)
-tournaments = json.load(open('tournaments.json'))
+tournaments = json.load(open('tournaments.json')) #reads list of tournaments from .json file. Only URL is required, but name of tournament may be good for organizing the json file.
 knownalts   = json.load(open('knownAlts.json'))
 broke_tourneys = []
+analyzed_tourneys = []
 players = {}
 for tourney in tournaments:
+  if tourney in analyzed_tourneys:
+    continue
+  else:
+    analyzed_tourneys.append(tourney)
 ###Tournaments Loop
   i = 0
   sets = ["dummmy"]
@@ -106,106 +115,3 @@ for tourney in tournaments:
             players["Tag"] = [entrant1]
         if entrant2 not in players:
           players["Tag"].append(entrant2)
-        
-        
-      
-
-      
-    # print(sets)
-#print(len(sets))
-#print('\n')
-#for ii, item in enumerate(sets):
-#  print("Page = 1")
-#  print(f"{ii+1} item in list is {item}\n")
-#print('\n')
-#print(len(sets))
-
-#sets = smash.tournament_show_sets('meat-40', 'melee-singles', 2)
-#for ii, item in enumerate(sets):
-#  print("Page = 2")
-#  print(f"{ii+1} item in list is {item}\n")
-#print('\n')
-#print(len(sets))
-
-
-
-
-
-# results = smash.tournament_show_lightweight_results('meat-40', 'melee-singles', 1)
-# print(results)
-
-# print('\n\n\n')
-# tournament_with_bracket = smash.tournament_show_with_brackets('meat-40', 'melee-singles')
-# print(tournament_with_bracket)
-# print(cr)
-# seedMapping = []
-# for index, row in enumerate(cr):
-    # if index == 0: # skip the header row
-        # continue
-    # seedId = row[0] # check your columns!
-    # seedNum = row[1] # check your columns!
-    # seedMapping.append({
-        # "seedId": seedId,
-        # "seedNum": seedNum,
-    # })
-# client = GraphQLClient('https://api.start.gg/gql/alpha')
-# client.inject_token('Bearer ' + authToken)
-# result = client.execute('''
-# query EventSets($eventId: slug!, $page: Int!, $perpage: Int!) {
-#   event(id: $eventId) {
-#     tournament {
-#       name
-#       id
-#     }
-#     name
-#     id
-#     sets(
-#       page: $page
-#       perpage: $perpage
-#       sortType: STANDARD
-#     ) {
-#       pageInfo {
-#         total
-        
-#       }
-#       nodes {
-#         id
-#         displayScore
-#         round
-        
-#         slots {
-#           id
-#           entrant {
-#             id
-#             name
-            
-#           }
-#         }
-#       }
-#     }
-#   }
-# }''',
-# {
-#   "eventId":753036,
-#   "page": 1,
-#   "perPage": 5
-# })
-    
-    #'''
-# mutation UpdatePhaseSeeding ($phaseId: ID!, $seedMapping: [UpdatePhaseSeedInfo]!) {
-#   updatePhaseSeeding (phaseId: $phaseId, seedMapping: $seedMapping) {
-#     id
-#   }
-# }
-# ''',
-# {
-#     "phaseId": phaseId,
-#     "seedMapping": seedMapping,
-# # })
-# resData = json.loads(result)
-# print(resData)
-# if 'errors' in resData:
-#     print('Error:')
-#     print(resData['errors'])
-# else:
-#     print('Successfully Got Sets!')
