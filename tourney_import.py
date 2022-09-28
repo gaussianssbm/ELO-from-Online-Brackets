@@ -41,15 +41,11 @@ def get_top_8(event_id, authToken):
   return result
 
 ## Make sure to run `pip install graphqlclient`
-# phaseId = 0000000
-# sheetsKey = '1K0YQpnXjgGUHmgIPdUMdoPz0iQcgrPRJWfv9ykQ3p88'
-authToken = '9292bda8f96a5b1f2f425c546de5ae92'
-apiVersion = 'alpha'
-# Make sure your sheet share link settings are 'anyone with the link'
-# sheets_url = 'https://docs.google.com/spreadsheets/d/' + sheetsKey + '/export?format=csv'
 
-# ftpstream = urllib2.urlopen(sheets_url)
-# cr = csv.reader(codecs.iterdecode(ftpstream, 'utf-8'))
+authToken = None #BE SURE TO ENTER YOUR AUTHTOKEN FROM START.GG
+apiVersion = 'alpha'
+
+
 tourn_database  = open('database_tournaments.csv', 'w+')
 tourn_writer    = csv.writer(tourn_database); tourn_writer.writerow(['Tournament Name', 'Date', 'Number of Entrants', 'Tournament URL', 'Top-8'])
 player_database = open('database_players.csv', 'w+')
