@@ -40,7 +40,6 @@ def get_top_8(event_id, authToken):
   result = result.split(']}}}')[0]
   return result
 
-# authToken = open('9292bda8f96a5b1f2f425c546de5ae92').read() #BE SURE TO ENTER YOUR AUTHTOKEN FROM START.GG
 authFile = open('auth_token.txt')
 authToken = authFile.read()
 authFile.close()
