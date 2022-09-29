@@ -162,7 +162,7 @@ for tourney in tournaments:
         players_h2hsets_df.at[entrant1, entrant2] = f"{int(str(players_h2hsets_df.loc[entrant1, entrant2]).split('-')[0])}-{int(str(players_h2hsets_df.loc[entrant1, entrant2]).split('-')[1]) + 1}"; 
         players_h2hsets_df.at[entrant2, entrant1] = f"{int(str(players_h2hsets_df.loc[entrant2, entrant1]).split('-')[0]) + 1}-{int(str(players_h2hsets_df.loc[entrant2, entrant1]).split('-')[1])}"
     # print(players_h2hgames_df)
-players_h2hgames_df.replace(to_replace='0-0', value = '')   
+players_h2hgames_df.replace('0-0', '',inplace = True)   
 players_h2hgames_df.to_csv('database_head2heads_games.csv')
-players_h2hsets_df.replace(to_replace='0-0', value = '')  
+players_h2hsets_df.replace('0-0', '', inplace = True)  
 players_h2hsets_df.to_csv('database_head2heads_sets.csv')
