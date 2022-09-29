@@ -7,6 +7,7 @@ import json
 import urllib.request as urllib2
 from graphqlclient import GraphQLClient
 import codecs
+import pandas as pd
 
 def get_top_8(event_id, authToken):
   client = GraphQLClient('https://api.start.gg/gql/alpha')
@@ -32,7 +33,6 @@ def get_top_8(event_id, authToken):
     "page": 1,
     "perPage": 8
   })
-  # print(f'{result}\n\n')
   result = str(result).replace('"data":{"event":{"standings":{"nodes":[{', '')
   result = result.replace('{"placement":','')
   result = result.replace(',"entrant":{"name":"','. ')
@@ -40,10 +40,13 @@ def get_top_8(event_id, authToken):
   result = result.split(']}}}')[0]
   return result
 
-authToken = '9292bda8f96a5b1f2f425c546de5ae92' #BE SURE TO ENTER YOUR AUTHTOKEN FROM START.GG
+# authToken = open('9292bda8f96a5b1f2f425c546de5ae92').read() #BE SURE TO ENTER YOUR AUTHTOKEN FROM START.GG
+authFile = open('auth_token.txt')
+authToken = authFile.read()
+authFile.close()
 apiVersion = 'alpha'
 
-
+#Make csv files that will be the output for data
 tourn_database  = open('database_tournaments.csv', 'w+')
 tourn_writer    = csv.writer(tourn_database); tourn_writer.writerow(['Tournament Name', 'Date', 'Number of Entrants', 'Tournament URL', 'Top-8'])
 player_database = open('database_players.csv', 'w+')
@@ -53,8 +56,8 @@ head2head_games = open('database_head2heads_games.csv', 'w+') #work in progress
 head2head_sets_writer  = csv.writer(head2head_sets)
 head2head_games_writer = csv.writer(head2head_games)
 
+#initalize pysmashgg (if you're reading this, go thank ETossed) and API client
 smash = pysmashgg.SmashGG(authToken, True)
-
 client = GraphQLClient('https://api.start.gg/gql/alpha')
 client.inject_token('Bearer ' + authToken)
 tournaments = json.load(open('tournaments.json')) #reads list of tournaments from .json file. Only URL is required, but name of tournament may be good for organizing the json file.
@@ -104,6 +107,7 @@ for tourney in tournaments:
       entrant2 = set['entrant2Players'][0]['playerTag'].split(' | ')[-1].strip().lower()
       # print(knownalts)
       if (set['completed'] and set['entrant1Score'] >= 0 and set['entrant2Score'] >= 0):
+        # print(set)
         # print(entrant1)
         if (entrant1 == None or entrant2 == None):
           continue
@@ -114,6 +118,8 @@ for tourney in tournaments:
             for knowntag_dict in knownalts: #THERE'S got to be a more efficient way to do this, but my brain is tired :)
               if entrant1 == knowntag_dict["Alt"].lower():
                 if knowntag_dict["Tag"] not in players:
+                  # print(knowntag_dict["Tag"])
+                  # print(knowntag_dict["Alt"])
                   players[knowntag_dict["Tag"].lower()] = []
           else:
             print(f"DID NOT KNOW HOW TO PROCESS PLAYER {entrant1} FOR TOURNAMENT {tourn_w_brack['name']}")
