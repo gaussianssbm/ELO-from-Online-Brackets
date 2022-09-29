@@ -2,12 +2,17 @@
     {
         "name": "MEAT 40",
         "url": "https://www.start.gg/tournament/meat-40/details",
-        "weight": 16
+        "weight": "local"
     },
     {
         "name": "MEAT 39",
         "slug": "meat-39",
         "url": "https://www.start.gg/tournament/meat-39/details",
-        "weight": 16
+        "weight": "local"
+    },
+    {
+        "name": "MEAT 38",
+        "url": "https://www.start.gg/tournament/meat-38/details",
+        "weight": "local"
     }
 ]
