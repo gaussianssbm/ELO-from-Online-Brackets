@@ -4,7 +4,7 @@ Will update and maintain an ELO score base of players based on results imported 
 ## Intro:
 tourney_import.py is a python file that can be run to process information from a list of tournaments in 'tournaments.json'. Known player alt tags / smurf tags can be accounted for in 'knownAlts.json'. Python is required to run the 'tourney_import.py' file, as well as the python packages: pysmashgg, csv, json, urllib, graphqlclient, and pandas.
 
-## tourney.py Output:
+## tourney_import.py Output:
 The output of running this script is 4 .csv files: a general tournament database from the input tournamnets "database_players.csv" **(Under Construction)**, a general database of players "database_players.csv" **(Under Construction)**, and two head-to-head result tables for set counts "database_head2heads_sets.csv" (Under Construction) and game counts "database_head2heads_games.csv" **(Under Construction)**.
 
 ## Tournament input deck format (tournaments.json)
