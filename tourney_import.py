@@ -6,7 +6,7 @@ import csv
 import json
 import urllib.request as urllib2
 from graphqlclient import GraphQLClient
-import codecs
+# import codecs
 import pandas as pd
 
 def get_top_8(event_id, authToken):
@@ -31,7 +31,7 @@ def get_top_8(event_id, authToken):
   {
     "eventId": event_id,
     "page": 1,
-    "perPage": 8
+    "perPage": 100
   })
   result = str(result).replace('"data":{"event":{"standings":{"nodes":[{', '')
   result = result.replace('{"placement":','')
@@ -49,12 +49,12 @@ apiVersion = 'alpha'
 #Make csv files that will be the output for data
 tourn_database  = open('database_tournaments.csv', 'w+')
 tourn_writer    = csv.writer(tourn_database); tourn_writer.writerow(['Tournament Name', 'Date', 'Number of Entrants', 'Tournament URL', 'Top-8'])
-player_database = open('database_players.csv', 'w+')
-player_writer   = csv.writer(player_database); player_writer.writerow(['Tag', 'Known Alts', 'Tournament: Placing'])
-head2head_sets  = open('database_head2heads.csv', 'w+') #work in progress
-head2head_games = open('database_head2heads_games.csv', 'w+') #work in progress
-head2head_sets_writer  = csv.writer(head2head_sets)
-head2head_games_writer = csv.writer(head2head_games)
+# player_database = open('database_players.csv', 'w+')
+# player_writer   = csv.writer(player_database); player_writer.writerow(['Tag', 'Known Alts', 'Tournament: Placing'])
+# head2head_sets  = open('database_head2heads_sets.csv', 'w+') #work in progress
+# head2head_games = open('database_head2heads_games.csv', 'w+') #work in progress
+# head2head_sets_writer  = csv.writer(head2head_sets)
+# head2head_games_writer = csv.writer(head2head_games)
 
 #initalize pysmashgg (if you're reading this, go thank ETossed) and API client
 smash = pysmashgg.SmashGG(authToken, True)
@@ -65,7 +65,10 @@ knownalts   = json.load(open('knownAlts.json'))
 alt_tags = [alt_dict["Alt"].lower() for alt_dict in knownalts]
 broke_tourneys = []
 analyzed_tourneys = []
+# seen_players= []
 players = {}
+players_h2hsets_df  = pd.DataFrame()
+players_h2hgames_df = pd.DataFrame()
 for tourney in tournaments:
   if tourney in analyzed_tourneys:
     continue
@@ -114,23 +117,52 @@ for tourney in tournaments:
         if entrant1 not in players.keys():
           if entrant1 not in alt_tags:
             players[entrant1] = [] #Thinking about what best to put here! 9/23/22
+            # seen_players.append(entrant1)
+            players_h2hgames_df[entrant1] = "0-0"; players_h2hgames_df.loc[entrant1] = "0-0"
+            players_h2hsets_df[entrant1]  = "0-0"; players_h2hsets_df.loc[entrant1]  = "0-0"
+            players_h2hgames_df.at[entrant1, entrant1] = "X";players_h2hsets_df.at[entrant1, entrant1] = "X"
           elif entrant1 in alt_tags:#tag is a known alt, check if actual player is in the database already:
             for knowntag_dict in knownalts: #THERE'S got to be a more efficient way to do this, but my brain is tired :)
               if entrant1 == knowntag_dict["Alt"].lower():
                 if knowntag_dict["Tag"] not in players:
-                  # print(knowntag_dict["Tag"])
-                  # print(knowntag_dict["Alt"])
                   players[knowntag_dict["Tag"].lower()] = []
+                  # seen_players.append(knowntag_dict["Tag"].lower())
+                  players_h2hgames_df[knowntag_dict["Tag"].lower()] = "0-0"; players_h2hgames_df.loc[knowntag_dict["Tag"].lower()] = "0-0"
+                  players_h2hsets_df[knowntag_dict["Tag"].lower()]  = "0-0"; players_h2hsets_df.loc[knowntag_dict["Tag"].lower()]  = "0-0"
+                  players_h2hgames_df.at[entrant1, entrant1] = "X";players_h2hsets_df.at[entrant1, entrant1] = "X"
+                  entrant1 = knowntag_dict["Tag"].lower()
           else:
             print(f"DID NOT KNOW HOW TO PROCESS PLAYER {entrant1} FOR TOURNAMENT {tourn_w_brack['name']}")
 
         if entrant2 not in players.keys():
           if entrant2 not in alt_tags:
             players[entrant2] = [] #Thinking about what best to put here! 9/23/22
+            # seen_players.append(entrant2)
+            players_h2hgames_df[entrant2] = "0-0"; players_h2hgames_df.loc[entrant2] = "0-0"
+            players_h2hsets_df[entrant2]  = "0-0"; players_h2hsets_df.loc[entrant2]  = "0-0"
+            players_h2hgames_df.at[entrant2, entrant2] = "X";players_h2hsets_df.at[entrant2, entrant2] = "X"
           elif entrant2 in alt_tags:#tag is a known alt, check if actual player is in the database already:
             for knowntag_dict in knownalts: #THERE'S got to be a more efficient way to do this, but my brain is tired :)
               if entrant2 == knowntag_dict["Alt"].lower():
                 if knowntag_dict["Tag"] not in players:
                   players[knowntag_dict["Tag"].lower()] = []
+                  # seen_players.append(knowntag_dict["Tag"].lower())
+                  players_h2hgames_df[knowntag_dict["Tag"].lower()] = "0-0"; players_h2hgames_df.loc[knowntag_dict["Tag"].lower()] = "0-0"
+                  players_h2hsets_df[knowntag_dict["Tag"].lower()]  = "0-0"; players_h2hsets_df.loc[knowntag_dict["Tag"].lower()]  = "0-0"
+                  players_h2hgames_df.at[entrant2, entrant2] = "X";players_h2hsets_df.at[entrant2, entrant2] = "X"
+                  entrant2 = knowntag_dict["Tag"].lower()
           else:
             print(f"DID NOT KNOW HOW TO PROCESS PLAYER {entrant2} FOR TOURNAMENT {tourn_w_brack['name']}")
+      players_h2hgames_df.at[entrant1, entrant2] = f"{int(str(players_h2hgames_df.loc[entrant1, entrant2]).split('-')[0]) + int(set['entrant1Score'])}-{int(str(players_h2hgames_df.loc[entrant1, entrant2]).split('-')[1]) + int(set['entrant2Score'])}"; 
+      players_h2hgames_df.at[entrant2, entrant1] = f"{int(str(players_h2hgames_df.loc[entrant2, entrant1]).split('-')[0]) + int(set['entrant2Score'])}-{int(str(players_h2hgames_df.loc[entrant2, entrant1]).split('-')[1]) + int(set['entrant1Score'])}"
+      if set['entrant1Score'] > set['entrant2Score']:
+        players_h2hsets_df.at[entrant1, entrant2] = f"{int(str(players_h2hsets_df.loc[entrant1, entrant2]).split('-')[0]) + 1}-{int(str(players_h2hsets_df.loc[entrant1, entrant2]).split('-')[1])}"; 
+        players_h2hsets_df.at[entrant2, entrant1] = f"{int(str(players_h2hsets_df.loc[entrant2, entrant1]).split('-')[0])}-{int(str(players_h2hsets_df.loc[entrant2, entrant1]).split('-')[1]) + 1}"
+      if set['entrant1Score'] < set['entrant2Score']:
+        players_h2hsets_df.at[entrant1, entrant2] = f"{int(str(players_h2hsets_df.loc[entrant1, entrant2]).split('-')[0])}-{int(str(players_h2hsets_df.loc[entrant1, entrant2]).split('-')[1]) + 1}"; 
+        players_h2hsets_df.at[entrant2, entrant1] = f"{int(str(players_h2hsets_df.loc[entrant2, entrant1]).split('-')[0]) + 1}-{int(str(players_h2hsets_df.loc[entrant2, entrant1]).split('-')[1])}"
+    # print(players_h2hgames_df)
+players_h2hgames_df.replace(to_replace='0-0', value = '')   
+players_h2hgames_df.to_csv('database_head2heads_games.csv')
+players_h2hsets_df.replace(to_replace='0-0', value = '')  
+players_h2hsets_df.to_csv('database_head2heads_sets.csv')
