@@ -11,19 +11,20 @@ The output of running this script is 4 .csv files: a general tournament database
 ## Tournament input deck format (tournaments.json)
 The format for inputs to 'tournaments.json' is below. Each tournament must be in curly {} brackets, and the file begins with and ends with square [] brackets. A comma is required after every set of curly {} brackets EXCEPT the last one (should still work if you accidentally include it though). The code only requires the URL to the details page of each tournament; for example: https://www.start.gg/tournament/meat-40/details **HOWEVER** it is **STRONGLY** recommended including the name for your own readability and the weight of the tournament ('local-lite', 'local', 'local-weekend', 'regional', 'major') for ranking algorithm purposes **(UNDER CONSTRUCTION)**. A comma is required acter every key: value pair except for the final one in the curly {} brackets. This is read as a list of python dictionaries in the code. Instead of URL, tournament slug may be provided (refer to start.gg api documentation).
 **EXAMPLE:**
+
 [
-    {
-        "name": "MEAT 40",
-        "url": "https://www.start.gg/tournament/meat-40/details",
-        "weight": "local"
-    },
-    {
-        "name": "MEAT 39",
-        "slug": "meat-39",
-        "url": "https://www.start.gg/tournament/meat-39/details",
-        "weight": "local"
-    },
-    {
+&emsp; {
+&emsp; &emsp; "name": "MEAT 40",  
+&emsp; &emsp; "url": "https://www.start.gg/tournament/meat-40/details",  
+&emsp; &emsp; "weight": "local"  
+&emsp; },  
+&emsp; {. 
+&emsp; &emsp; "name": "MEAT 39",  
+&emsp; &emsp; "slug": "meat-39",  
+&emsp; &emsp; "url": "https://www.start.gg/tournament/meat-39/details",  
+&emsp; &emsp; "weight": "local"  
+    },  
+    {  
         "name": "MEAT 38",
         "url": "https://www.start.gg/tournament/meat-38/details",
         "weight": "local"
