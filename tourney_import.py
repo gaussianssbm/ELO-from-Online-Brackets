@@ -1,3 +1,4 @@
+##To-do: make query to return URL for tournament so that the script doesn't depend on users giving the URL in the input deck.
 import sys
 import time
 from datetime import datetime
@@ -9,7 +10,7 @@ from graphqlclient import GraphQLClient
 # import codecs
 import pandas as pd
 
-def get_top_8(event_id, authToken):
+def get_ordered_results(event_id, authToken):
   client = GraphQLClient('https://api.start.gg/gql/alpha')
   client.inject_token('Bearer ' + authToken)
   result = client.execute('''
@@ -31,7 +32,7 @@ def get_top_8(event_id, authToken):
   {
     "eventId": event_id,
     "page": 1,
-    "perPage": 100
+    "perPage": 500
   })
   result = str(result).replace('"data":{"event":{"standings":{"nodes":[{', '')
   result = result.replace('{"placement":','')
@@ -45,15 +46,7 @@ authToken = authFile.read()
 authFile.close()
 apiVersion = 'alpha'
 
-#Make csv files that will be the output for data
-tourn_database  = open('database_tournaments.csv', 'w+')
-tourn_writer    = csv.writer(tourn_database); tourn_writer.writerow(['Tournament Name', 'Date', 'Number of Entrants', 'Tournament URL', 'Top-8'])
-# player_database = open('database_players.csv', 'w+')
-# player_writer   = csv.writer(player_database); player_writer.writerow(['Tag', 'Known Alts', 'Tournament: Placing'])
-# head2head_sets  = open('database_head2heads_sets.csv', 'w+') #work in progress
-# head2head_games = open('database_head2heads_games.csv', 'w+') #work in progress
-# head2head_sets_writer  = csv.writer(head2head_sets)
-# head2head_games_writer = csv.writer(head2head_games)
+#Make csv files that will be the output for data. Am trying to p
 
 #initalize pysmashgg (if you're reading this, go thank ETossed) and API client
 smash = pysmashgg.SmashGG(authToken, True)
@@ -66,6 +59,7 @@ broke_tourneys = []
 analyzed_tourneys = []
 # seen_players= []
 players = {}
+tourn_placement_list = []; tourn_date_list = []; tourn_name_list = []; tourn_size_list = []; tourn_url_list = []
 players_h2hsets_df  = pd.DataFrame()
 players_h2hgames_df = pd.DataFrame()
 for tourney in tournaments:
@@ -96,11 +90,13 @@ for tourney in tournaments:
         errors.write('\n')
         break
     if i == 1:
-      tourn_w_brack = smash.tournament_show_with_brackets(tourney['slug'], 'melee-singles')
-      date = str(datetime.utcfromtimestamp(int(tourn_w_brack["startTimestamp"]))).split(' ')[0]
-      top8 = get_top_8(tourn_w_brack["eventId"], authToken)
       #print tournament stats the first time the tournament is looped over
-      tourn_writer.writerow([tourn_w_brack["name"], date, tourn_w_brack["entrants"], tourney['url'], top8])
+      tourn_w_brack = smash.tournament_show_with_brackets(tourney['slug'], 'melee-singles')
+      print(f"Analyzing Tournament {tourn_w_brack['name']}...")
+      date = str(datetime.utcfromtimestamp(int(tourn_w_brack["startTimestamp"]))).split(' ')[0]
+      placements = get_ordered_results(tourn_w_brack["eventId"], authToken)
+      tourn_placement_list.append([placements]); tourn_date_list.append(date); tourn_url_list.append(tourney['url']); tourn_name_list.append(tourn_w_brack["name"]); tourn_size_list.append(f"Number of Entrants: {tourn_w_brack['entrants']}")
+      # tourn_writer.writerow([tourn_w_brack["name"], date, tourn_w_brack["entrants"], tourney['url'], placements])
     if (i % 7 == 0):
       print("Sleeping")
       time.sleep(10) # Might be able to remove, but idk, just not to time out API
@@ -128,8 +124,8 @@ for tourney in tournaments:
                   # seen_players.append(knowntag_dict["Tag"].lower())
                   players_h2hgames_df[knowntag_dict["Tag"].lower()] = "0-0"; players_h2hgames_df.loc[knowntag_dict["Tag"].lower()] = "0-0"
                   players_h2hsets_df[knowntag_dict["Tag"].lower()]  = "0-0"; players_h2hsets_df.loc[knowntag_dict["Tag"].lower()]  = "0-0"
-                  players_h2hgames_df.at[entrant1, entrant1] = "X";players_h2hsets_df.at[entrant1, entrant1] = "X"
                   entrant1 = knowntag_dict["Tag"].lower()
+                  players_h2hgames_df.at[entrant1, entrant1] = "X";players_h2hsets_df.at[entrant1, entrant1] = "X"
           else:
             print(f"DID NOT KNOW HOW TO PROCESS PLAYER {entrant1} FOR TOURNAMENT {tourn_w_brack['name']}")
 
@@ -139,7 +135,7 @@ for tourney in tournaments:
             # seen_players.append(entrant2)
             players_h2hgames_df[entrant2] = "0-0"; players_h2hgames_df.loc[entrant2] = "0-0"
             players_h2hsets_df[entrant2]  = "0-0"; players_h2hsets_df.loc[entrant2]  = "0-0"
-            players_h2hgames_df.at[entrant2, entrant2] = "X";players_h2hsets_df.at[entrant2, entrant2] = "X"
+            players_h2hgames_df.at[entrant2, entrant2] = "X"; players_h2hsets_df.at[entrant2, entrant2] = "X"
           elif entrant2 in alt_tags:#tag is a known alt, check if actual player is in the database already:
             for knowntag_dict in knownalts: #THERE'S got to be a more efficient way to do this, but my brain is tired :)
               if entrant2 == knowntag_dict["Alt"].lower():
@@ -148,20 +144,26 @@ for tourney in tournaments:
                   # seen_players.append(knowntag_dict["Tag"].lower())
                   players_h2hgames_df[knowntag_dict["Tag"].lower()] = "0-0"; players_h2hgames_df.loc[knowntag_dict["Tag"].lower()] = "0-0"
                   players_h2hsets_df[knowntag_dict["Tag"].lower()]  = "0-0"; players_h2hsets_df.loc[knowntag_dict["Tag"].lower()]  = "0-0"
-                  players_h2hgames_df.at[entrant2, entrant2] = "X";players_h2hsets_df.at[entrant2, entrant2] = "X"
                   entrant2 = knowntag_dict["Tag"].lower()
+                  players_h2hgames_df.at[entrant2, entrant2] = "X"; players_h2hsets_df.at[entrant2, entrant2] = "X"
           else:
             print(f"DID NOT KNOW HOW TO PROCESS PLAYER {entrant2} FOR TOURNAMENT {tourn_w_brack['name']}")
-      players_h2hgames_df.at[entrant1, entrant2] = f"{int(str(players_h2hgames_df.loc[entrant1, entrant2]).split('-')[0]) + int(set['entrant1Score'])}-{int(str(players_h2hgames_df.loc[entrant1, entrant2]).split('-')[1]) + int(set['entrant2Score'])}"; 
-      players_h2hgames_df.at[entrant2, entrant1] = f"{int(str(players_h2hgames_df.loc[entrant2, entrant1]).split('-')[0]) + int(set['entrant2Score'])}-{int(str(players_h2hgames_df.loc[entrant2, entrant1]).split('-')[1]) + int(set['entrant1Score'])}"
-      if set['entrant1Score'] > set['entrant2Score']:
-        players_h2hsets_df.at[entrant1, entrant2] = f"{int(str(players_h2hsets_df.loc[entrant1, entrant2]).split('-')[0]) + 1}-{int(str(players_h2hsets_df.loc[entrant1, entrant2]).split('-')[1])}"; 
-        players_h2hsets_df.at[entrant2, entrant1] = f"{int(str(players_h2hsets_df.loc[entrant2, entrant1]).split('-')[0])}-{int(str(players_h2hsets_df.loc[entrant2, entrant1]).split('-')[1]) + 1}"
-      if set['entrant1Score'] < set['entrant2Score']:
-        players_h2hsets_df.at[entrant1, entrant2] = f"{int(str(players_h2hsets_df.loc[entrant1, entrant2]).split('-')[0])}-{int(str(players_h2hsets_df.loc[entrant1, entrant2]).split('-')[1]) + 1}"; 
-        players_h2hsets_df.at[entrant2, entrant1] = f"{int(str(players_h2hsets_df.loc[entrant2, entrant1]).split('-')[0]) + 1}-{int(str(players_h2hsets_df.loc[entrant2, entrant1]).split('-')[1])}"
-    # print(players_h2hgames_df)
-players_h2hgames_df.replace('0-0', '',inplace = True); players_h2hgames_df.sort_index(inplace = True); players_h2hgames_df.sort_index(axis = 1, inplace = True)
+        players_h2hgames_df.at[entrant1, entrant2] = f"{int(str(players_h2hgames_df.loc[entrant1, entrant2]).split('-')[0]) + int(set['entrant1Score'])}-{int(str(players_h2hgames_df.loc[entrant1, entrant2]).split('-')[1]) + int(set['entrant2Score'])}"; 
+        players_h2hgames_df.at[entrant2, entrant1] = f"{int(str(players_h2hgames_df.loc[entrant2, entrant1]).split('-')[0]) + int(set['entrant2Score'])}-{int(str(players_h2hgames_df.loc[entrant2, entrant1]).split('-')[1]) + int(set['entrant1Score'])}"
+        if set['entrant1Score'] > set['entrant2Score']:
+          players_h2hsets_df.at[entrant1, entrant2] = f"{int(str(players_h2hsets_df.loc[entrant1, entrant2]).split('-')[0]) + 1}-{int(str(players_h2hsets_df.loc[entrant1, entrant2]).split('-')[1])}"; 
+          players_h2hsets_df.at[entrant2, entrant1] = f"{int(str(players_h2hsets_df.loc[entrant2, entrant1]).split('-')[0])}-{int(str(players_h2hsets_df.loc[entrant2, entrant1]).split('-')[1]) + 1}"
+        if set['entrant1Score'] < set['entrant2Score']:
+          players_h2hsets_df.at[entrant1, entrant2] = f"{int(str(players_h2hsets_df.loc[entrant1, entrant2]).split('-')[0])}-{int(str(players_h2hsets_df.loc[entrant1, entrant2]).split('-')[1]) + 1}"; 
+          players_h2hsets_df.at[entrant2, entrant1] = f"{int(str(players_h2hsets_df.loc[entrant2, entrant1]).split('-')[0]) + 1}-{int(str(players_h2hsets_df.loc[entrant2, entrant1]).split('-')[1])}"
+players_h2hgames_df.replace('0-0', '',inplace = True); 
+players_h2hgames_df.sort_index(inplace = True); players_h2hgames_df.sort_index(axis = 1, inplace = True)
 players_h2hgames_df.to_csv('database_head2heads_games.csv')
-players_h2hsets_df.replace('0-0', '', inplace = True); players_h2hsets_df.sort_index(inplace = True); players_h2hsets_df.sort_index(axis = 1, inplace = True)
+players_h2hsets_df.replace('0-0', '', inplace = True); players_h2hsets_df.sort_index(inplace = True); 
+players_h2hsets_df.sort_index(axis = 1, inplace = True)
 players_h2hsets_df.to_csv('database_head2heads_sets.csv')
+
+tourn_pd = pd.DataFrame([tourn_name_list, tourn_date_list, tourn_url_list, tourn_size_list])
+tourn_placement_list = pd.DataFrame.from_dict({kk: [item.split(';')[ii] for item in tourn_placement_list[kk] for ii in range(item.count(';'))] for kk in range(len(tourn_name_list))},orient='index').transpose()
+tourn_pd = pd.concat([tourn_pd, tourn_placement_list], ignore_index=True)
+tourn_pd.to_csv('database_tournaments.csv',header=False, index=False)
