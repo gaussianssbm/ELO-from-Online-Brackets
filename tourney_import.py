@@ -98,7 +98,7 @@ for tourney in tournaments:
       tourn_placement_list.append([placements]); tourn_date_list.append(date); tourn_url_list.append(tourney['url']); tourn_name_list.append(tourn_w_brack["name"]); tourn_size_list.append(f"Number of Entrants: {tourn_w_brack['entrants']}")
       # tourn_writer.writerow([tourn_w_brack["name"], date, tourn_w_brack["entrants"], tourney['url'], placements])
     if (i % 7 == 0):
-      print("Sleeping")
+      print("Pausing to not time out the start.gg API with too many requests.")
       time.sleep(10) # Might be able to remove, but idk, just not to time out API
     for set in sets:
       entrant1 = set['entrant1Players'][0]['playerTag'].split(' | ')[-1].strip().lower()
@@ -109,45 +109,46 @@ for tourney in tournaments:
         # print(entrant1)
         if (entrant1 == None or entrant2 == None):
           continue
-        if entrant1 not in players.keys():
-          if entrant1 not in alt_tags:
-            players[entrant1] = [] #Thinking about what best to put here! 9/23/22
-            # seen_players.append(entrant1)
+        if entrant1 not in alt_tags:
+          # seen_players.append(entrant1)
+          if entrant1 not in players.keys(): #First time seeing entrant1. Initalize row in pandas dataframes.
+            players[entrant1] = []
             players_h2hgames_df[entrant1] = "0-0"; players_h2hgames_df.loc[entrant1] = "0-0"
             players_h2hsets_df[entrant1]  = "0-0"; players_h2hsets_df.loc[entrant1]  = "0-0"
             players_h2hgames_df.at[entrant1, entrant1] = "X";players_h2hsets_df.at[entrant1, entrant1] = "X"
-          elif entrant1 in alt_tags:#tag is a known alt, check if actual player is in the database already:
-            for knowntag_dict in knownalts: #THERE'S got to be a more efficient way to do this, but my brain is tired :)
-              if entrant1 == knowntag_dict["Alt"].lower():
-                if knowntag_dict["Tag"] not in players:
-                  players[knowntag_dict["Tag"].lower()] = []
-                  # seen_players.append(knowntag_dict["Tag"].lower())
-                  players_h2hgames_df[knowntag_dict["Tag"].lower()] = "0-0"; players_h2hgames_df.loc[knowntag_dict["Tag"].lower()] = "0-0"
-                  players_h2hsets_df[knowntag_dict["Tag"].lower()]  = "0-0"; players_h2hsets_df.loc[knowntag_dict["Tag"].lower()]  = "0-0"
-                  entrant1 = knowntag_dict["Tag"].lower()
-                  players_h2hgames_df.at[entrant1, entrant1] = "X";players_h2hsets_df.at[entrant1, entrant1] = "X"
-          else:
-            print(f"DID NOT KNOW HOW TO PROCESS PLAYER {entrant1} FOR TOURNAMENT {tourn_w_brack['name']}")
+        elif entrant1 in alt_tags:#tag is a known alt, check if actual player is in the database already:
+          for knowntag_dict in knownalts: #THERE'S got to be a more efficient way to do this, but my brain is tired :)
+            # print("In entrant1 alt tag loop")
+            if entrant1 == knowntag_dict["Alt"].lower():
+              entrant1 = knowntag_dict["Tag"].lower()
+              if entrant1 not in players.keys(): #First time seeing entrant1. Initalize row in pandas dataframes.
+                players[knowntag_dict["Tag"].lower()] = []
+                players_h2hgames_df[knowntag_dict["Tag"].lower()] = "0-0"; players_h2hgames_df.loc[knowntag_dict["Tag"].lower()] = "0-0"
+                players_h2hsets_df[knowntag_dict["Tag"].lower()]  = "0-0"; players_h2hsets_df.loc[knowntag_dict["Tag"].lower()]  = "0-0"
+                players_h2hgames_df.at[entrant1, entrant1] = "X";players_h2hsets_df.at[entrant1, entrant1] = "X"
+                # seen_players.append(knowntag_dict["Tag"].lower())
+        else:
+          print(f"DID NOT KNOW HOW TO PROCESS PLAYER {entrant1} FOR TOURNAMENT {tourn_w_brack['name']}")
 
-        if entrant2 not in players.keys():
-          if entrant2 not in alt_tags:
-            players[entrant2] = [] #Thinking about what best to put here! 9/23/22
-            # seen_players.append(entrant2)
+        if entrant2 not in alt_tags:
+          # seen_players.append(entrant2)
+          if entrant2 not in players.keys(): #First time seeing entrant2. Initalize row in pandas dataframes.
+            players[entrant2] = []
             players_h2hgames_df[entrant2] = "0-0"; players_h2hgames_df.loc[entrant2] = "0-0"
             players_h2hsets_df[entrant2]  = "0-0"; players_h2hsets_df.loc[entrant2]  = "0-0"
             players_h2hgames_df.at[entrant2, entrant2] = "X"; players_h2hsets_df.at[entrant2, entrant2] = "X"
-          elif entrant2 in alt_tags:#tag is a known alt, check if actual player is in the database already:
-            for knowntag_dict in knownalts: #THERE'S got to be a more efficient way to do this, but my brain is tired :)
-              if entrant2 == knowntag_dict["Alt"].lower():
-                if knowntag_dict["Tag"] not in players:
-                  players[knowntag_dict["Tag"].lower()] = []
-                  # seen_players.append(knowntag_dict["Tag"].lower())
-                  players_h2hgames_df[knowntag_dict["Tag"].lower()] = "0-0"; players_h2hgames_df.loc[knowntag_dict["Tag"].lower()] = "0-0"
-                  players_h2hsets_df[knowntag_dict["Tag"].lower()]  = "0-0"; players_h2hsets_df.loc[knowntag_dict["Tag"].lower()]  = "0-0"
-                  entrant2 = knowntag_dict["Tag"].lower()
-                  players_h2hgames_df.at[entrant2, entrant2] = "X"; players_h2hsets_df.at[entrant2, entrant2] = "X"
-          else:
-            print(f"DID NOT KNOW HOW TO PROCESS PLAYER {entrant2} FOR TOURNAMENT {tourn_w_brack['name']}")
+        elif entrant2 in alt_tags:#tag is a known alt, check if actual player is in the database already:
+          for knowntag_dict in knownalts: #THERE'S got to be a more efficient way to do this, but my brain is tired :)
+            if entrant2 == knowntag_dict["Alt"].lower():
+              entrant2 = knowntag_dict["Tag"].lower()
+              if entrant2 not in players.keys(): #First time seeing entrant2. Initalize row in pandas dataframes.
+                players[knowntag_dict["Tag"].lower()] = []
+                players_h2hgames_df[knowntag_dict["Tag"].lower()] = "0-0"; players_h2hgames_df.loc[knowntag_dict["Tag"].lower()] = "0-0"
+                players_h2hsets_df[knowntag_dict["Tag"].lower()]  = "0-0"; players_h2hsets_df.loc[knowntag_dict["Tag"].lower()]  = "0-0"
+                players_h2hgames_df.at[entrant2, entrant2] = "X"; players_h2hsets_df.at[entrant2, entrant2] = "X"
+                # seen_players.append(knowntag_dict["Tag"].lower())
+        else:
+          print(f"DID NOT KNOW HOW TO PROCESS PLAYER {entrant2} FOR TOURNAMENT {tourn_w_brack['name']}")
         players_h2hgames_df.at[entrant1, entrant2] = f"{int(str(players_h2hgames_df.loc[entrant1, entrant2]).split('-')[0]) + int(set['entrant1Score'])}-{int(str(players_h2hgames_df.loc[entrant1, entrant2]).split('-')[1]) + int(set['entrant2Score'])}"; 
         players_h2hgames_df.at[entrant2, entrant1] = f"{int(str(players_h2hgames_df.loc[entrant2, entrant1]).split('-')[0]) + int(set['entrant2Score'])}-{int(str(players_h2hgames_df.loc[entrant2, entrant1]).split('-')[1]) + int(set['entrant1Score'])}"
         if set['entrant1Score'] > set['entrant2Score']:
@@ -167,3 +168,4 @@ tourn_pd = pd.DataFrame([tourn_name_list, tourn_date_list, tourn_url_list, tourn
 tourn_placement_list = pd.DataFrame.from_dict({kk: [item.split(';')[ii] for item in tourn_placement_list[kk] for ii in range(item.count(';'))] for kk in range(len(tourn_name_list))},orient='index').transpose()
 tourn_pd = pd.concat([tourn_pd, tourn_placement_list], ignore_index=True)
 tourn_pd.to_csv('database_tournaments.csv',header=False, index=False)
+print("Finished analyzing.")
