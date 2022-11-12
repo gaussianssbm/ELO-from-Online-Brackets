@@ -1,1 +1,2 @@
-[paste start.gg api auth token here]
+startgg: [paste start.gg api auth token here]
+challonge: [paste challonge api auth token here]
