@@ -1,6 +1,12 @@
 # UNDER DEVELOPMENT! Please contact gaussianssbm@gmail.com with any questions until further notice!
 Will update and maintain an ELO score base of players based on results imported from supplied start.gg tournament URL's.
 
+## Requires:
+* Python 3.x
+* pysmashgg
+* pychallonge
+* graphqlclient
+
 ## Intro:
 tourney_import.py is a python file that can be run to process information from a list of tournaments in 'tournaments.json'. Known player alt tags / smurf tags can be accounted for in 'knownAlts.json'. Python is required to run the 'tourney_import.py' file, as well as the python packages: pysmashgg, csv, json, urllib, graphqlclient, and pandas. You will need a start.gg API key, read more here: [https://developer.start.gg/](https://developer.start.gg/docs/authentication)
 
