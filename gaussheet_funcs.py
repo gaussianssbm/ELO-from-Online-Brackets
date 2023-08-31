@@ -1,19 +1,21 @@
 class Player:
     def __init__(self, tag_init_lower, tag_init_cap, ID_init):
-        self.tag          = tag_init_lower
-        self.tag_cap      = tag_init_cap
-        self.alts         = []
-        self.tournaments  = []
-        self.sets         = []
-        self.startggID    = [ID_init]
-        self.games_won    = 0
-        self.games_lost   = 0
-        self.sets_won     = 0
-        self.sets_lost    = 0
-        self.set_percent  = 0
-        self.game_percent = 0
-        self.elo          = 1500
-        self.temp_elo     = 1500
+        self.tag            = tag_init_lower
+        self.tag_cap        = tag_init_cap
+        self.alts           = []
+        self.tournaments    = []
+        self.sets           = []
+        self.startggID      = [ID_init]
+        self.num_tourneys   = 0
+        self.games_won      = 0
+        self.games_lost     = 0
+        self.sets_won       = 0
+        self.sets_lost      = 0
+        self.set_percent    = 0
+        self.game_percent   = 0
+        self.elo            = 1500
+        self.temp_elo       = 1500
+        self.head2head_sets = []
 
     def update_gamecount(self, m_won, m_lost):
         self.games_won    = self.games_won  + m_won
@@ -31,6 +33,7 @@ class Player:
 
     def add_tournament(self, m_tournament):
         self.tournaments.append(m_tournament)
+        self.num_tourneys = self.num_tourneys + 1
 
     def get_ELO(self):
         return self.elo
@@ -38,12 +41,35 @@ class Player:
     def set_ELO(self, elo):
         self.elo = elo
 
+    def set_head2head_sets(self, series_head2heads_sets):
+        self.head2head_sets = series_head2heads_sets[series_head2heads_sets != ''].to_dict()
+
     def get_tempELO(self):
         return self.temp_elo
   
     def set_tempELO(self, temp_elo):
         self.temp_elo = temp_elo
+    
+    def get_tag_cap(self):
+        return self.tag_cap
+    
+    def get_set_percent(self):
+        return self.set_percent
 
+    def get_sets_won(self):
+        return self.sets_won
+
+    def get_sets_lost(self):
+        return self.sets_lost
+
+    def get_tournaments(self):
+        return self.tournaments
+
+    def get_num_tournaments(self):
+        return self.num_tourneys
+    
+    def get_head2head_sets(self):
+        return self.head2head_sets
 
 
 
@@ -59,27 +85,27 @@ class Tournament:
             if weight_str in tourney_k_dict.keys():
                 if type(tourney_k_dict[weight_str]) == float or type(tourney_k_dict[weight_str]) == int:
                     return tourney_k_dict[weight_str]
-            return 0.5
+            return 1.0
         elif weight_str == 'local_weekend':
             if weight_str in tourney_k_dict.keys():
                 if type(tourney_k_dict[weight_str]) == float or type(tourney_k_dict[weight_str]) == int:
                     return tourney_k_dict[weight_str]
-            return 1.0
+            return 1.5
         elif weight_str == 'monthly':
             if weight_str in tourney_k_dict.keys():
                 if type(tourney_k_dict[weight_str]) == float or type(tourney_k_dict[weight_str]) == int:
                     return tourney_k_dict[weight_str]
-            return 1.0
+            return 2.0
         elif weight_str == 'regional':
             if weight_str in tourney_k_dict.keys():
                 if type(tourney_k_dict[weight_str]) == float or type(tourney_k_dict[weight_str]) == int:
                     return tourney_k_dict[weight_str]
-            return 1.5
+            return 2.0
         elif weight_str == 'major':
             if weight_str in tourney_k_dict.keys():
                 if type(tourney_k_dict[weight_str]) == float or type(tourney_k_dict[weight_str]) == int:
                     return tourney_k_dict[weight_str]
-            return 2.0
+            return 3.0
         elif weight_str == 'amature':
             if weight_str in tourney_k_dict.keys():
                 if type(tourney_k_dict[weight_str]) == float or type(tourney_k_dict[weight_str]) == int:
@@ -88,8 +114,9 @@ class Tournament:
         else:
             return 0.0
 
-    def __init__(self, name, date, url, placements, weight = 'local', tourney_k_dict = {}):
+    def __init__(self, name, event, date, url, placements, weight = 'local', tourney_k_dict = {}):
         self.name       = name
+        self.event      = event
         self.date       = date
         self.url        = url
         self.placements = placements
@@ -180,3 +207,40 @@ def get_ordered_results(event_id, authToken, alt_tag_dict_list):
         result[zz] = placer
     result = ' ; '.join(result)
     return result
+
+def get_event_entrant_size(event_id, authToken, page = 1):
+    import re
+    from graphqlclient import GraphQLClient
+    client = GraphQLClient('https://api.start.gg/gql/alpha')
+    client.inject_token('Bearer ' + authToken)
+    result = client.execute('''
+    query EventEntrants($eventId: ID!, $page: Int!, $perPage: Int!) {
+        event(id: $eventId) {
+        id
+        name
+        entrants(query: {
+            page: $page
+            perPage: $perPage
+        }) {
+            pageInfo {
+            total
+            totalPages
+            }
+            nodes {
+            id
+            participants {
+                id
+                gamerTag
+            }
+            }
+        }
+        }
+    }''',
+    {
+    "eventId": event_id,
+    "page": page,
+    "perPage": 499
+    })
+    #   print(result)
+    result = re.search('"total":\s?(\d+)', result)
+    return result.group(1)

@@ -2,77 +2,109 @@ import os
 import re
 import sys
 import time
-from datetime import datetime
-import pysmashgg
 import json
-from graphqlclient import GraphQLClient
+import pysmashgg
 import pandas as pd
+from datetime import datetime
+from graphqlclient import GraphQLClient
 
 import gaussheet_funcs
 
 def main():
-    authFile = open('auth_token.txt')
-    authToken = authFile.read()
-    authFile.close()
+    # authFile = open('auth_token.txt')
+    # authToken = authFile.read()
+    # authFile.close()
+    for ii, line in enumerate(open('auth_token.txt')):
+        if re.search('startgg', line):
+            authToken_startgg = re.search('.*?\s+([\S]+)', str(line)).group(1)
+        if re.search('challonge', line):
+            authToken_challonge = re.search('.*?\s+([\S]+)', str(line)).group(1)
 
     #initalize pysmashgg (if you're reading this, go thank ETossed) and API client
     apiVersion = 'alpha'
-    smash = pysmashgg.SmashGG(authToken, True)
+    smash = pysmashgg.SmashGG(authToken_startgg, True)
     client = GraphQLClient('https://api.start.gg/gql/alpha')
-    client.inject_token('Bearer ' + authToken)
+    client.inject_token('Bearer ' + authToken_startgg)
 
     tournaments_input = json.load(open('tournaments.json')) #reads list of tournaments from .json file. Only URL is required, but name of tournament may be good for organizing the json file.
     knownalts   = json.load(open('knownAlts.json'))
     custom_tournament_weights = gaussheet_funcs.read_custom_tournament_weights()
-
+    api_calls = 0
     broke_tourneys = []
     analyzed_tourneys = []
     players     = {}
     tournaments = []
-    tourn_placement_list = []; tourn_date_list = []; tourn_name_list = []; tourn_size_list = []; tourn_url_list = []
+    tourn_placement_list = []; tourn_date_list = []; tourn_name_list = []; tourn_size_list = []; tourn_url_list = []; tourn_event_list = []
+    if os.path.exists('database_tournaments.csv'):
+        known_database = pd.read_csv('database_tournaments.csv',sep=',', header = None, nrows = 3 )
     players_h2hsets_df  = pd.DataFrame()
     players_h2hgames_df = pd.DataFrame()
-
+    #sort list in sequential order:
+    new_tournament = False
     for tourney in tournaments_input:
-        if tourney in analyzed_tourneys:
-            continue
-        else:
-            analyzed_tourneys.append(tourney)
+        if 'slug' in tourney.keys():
+            if 'url' not in tourney.keys():
+                tourney['url'] = f"start.gg/tournament/{tourney['slug']}/details"
+        elif 'url' in tourney.keys():
+            # if 'slug' not in tourney.keys():
+            slug1 = tourney['url'].split("tournament/")[1].split("/")[0]
+            tourney["slug"] = slug1
+        all_events = smash.tournament_show_events(tourney['slug'])
+        api_calls += 1
+        kept_events = []
+        for event in all_events:
+            if "Melee Singles" in event['name']:
+                kept_events.append(event)
+        tourney['events'] = kept_events
+        tourn_w_brack = smash.tournament_show_with_brackets(tourney['slug'], kept_events[0])
+        # tourney['tourn_w_bracket']
+        # print(tourn_w_bracket)
+        tourney['timestamp'] = tourn_w_brack['startTimestamp']
+        # tourney['timestamp'] = int(tourn_w_brack["startTimestamp"])
+    # print(tournaments_input)
+    # return 0
+    tournaments_input = sorted(tournaments_input, key=lambda d: d['timestamp']) 
+    # print(tournaments_input)
+    for zz, tourney in enumerate(tournaments_input):
 
     ###Tournaments Loop
-        i = 0
-        sets = ["dummmy"]
-        while (sets != []):
-            i += 1
-            try:
-                if 'slug' in tourney.keys():
-                    sets = smash.tournament_show_sets(tourney['slug'], 'melee-singles', i)
-                    if 'url' not in tourney.keys():
-                        tourney['url'] = f"start.gg/tournament/{tourney['slug']}/details"
-                else:
-                    slug1 = tourney['url'].split("tournament/")[1].split("/")[0]
-                    tourney["slug"] = slug1
-                    sets  = smash.tournament_show_sets(slug1, 'melee-singles', i)
+        for event in tourney['events']:
+            i = 0
+            sets = ["dummmy"]
+            while (sets != []):
+                i += 1
+                try:
+                    sets  = smash.tournament_show_sets(tourney['slug'], event['slug'], i)
+                    api_calls += 1
+                except (TypeError, IndexError) as e:
+                    broke_tourneys.append(tourney)
+                    print("Broken, Index Error or Type Error")
+                    with open('errors.txt', 'a+') as errors:
+                        errors.write(tourney)
+                        errors.write('\n')
+                        break
 
-            except (TypeError, IndexError) as e:
-                broke_tourneys.append(tourney)
-                print("Broken, Index Error or Type Error")
-                with open('errors.txt', 'a+') as errors:
-                    errors.write(tourney)
-                    errors.write('\n')
-                    break
-
-            if i == 1:
-                #print tournament stats the first time the tournament is looped over
-                tourn_w_brack = smash.tournament_show_with_brackets(tourney['slug'], 'melee-singles')
-                print(f"Analyzing Tournament {tourn_w_brack['name']}...")
-                date = str(datetime.utcfromtimestamp(int(tourn_w_brack["startTimestamp"]))).split(' ')[0]
-                placements = gaussheet_funcs.get_ordered_results(tourn_w_brack["eventId"], authToken,alt_tag_dict_list=knownalts)
-                tourn_placement_list.append([placements]); tourn_date_list.append(date); tourn_url_list.append(tourney['url']); tourn_name_list.append(tourn_w_brack["name"]); tourn_size_list.append(f"Number of Entrants: {tourn_w_brack['entrants']}")
-                tournaments.append(gaussheet_funcs.Tournament(tourn_w_brack['name'], date, tourney['url'], placements, tourney['weight'], custom_tournament_weights))
-            if (i % 6 == 0):
-                sleeptime = 2
-                print(f"Pausing for {sleeptime} seconds to not time out the start.gg API with too many requests.")
+                if i == 1:
+                    #print tournament stats the first time the tournament is looped over
+                    tourn_w_brack = smash.tournament_show_with_brackets(tourney['slug'], event['name'])
+                    api_calls += 1
+                    date = str(datetime.utcfromtimestamp(int(tourn_w_brack["startTimestamp"]))).split(' ')[0]
+                    if new_tournament == False:
+                        print(known_database.loc[0,zz])
+                        print(known_database.loc[1,zz])
+                        if tourn_w_brack['name'] == known_database.loc[0,zz] and event['name'] == known_database.loc[1, zz] and date == known_database.loc[2,zz]:
+                            print(f"Skipping Tournament {tourn_w_brack['name']}, {event['name']}: already analyzed.")
+                            break
+                        else:
+                            new_tournament = True
+                    print(f"Analyzing Tournament {tourn_w_brack['name']}, {event['name']}...")
+                    
+                    placements = gaussheet_funcs.get_ordered_results(event["id"], authToken, alt_tag_dict_list=knownalts)
+                    api_calls += 1
+                    tourn_placement_list.append([placements]); tourn_date_list.append(date); tourn_url_list.append(tourney['url']); tourn_name_list.append(tourn_w_brack["name"]); tourn_size_list.append(f"Number of Entrants: {tourn_w_brack['entrants']}"); tourn_event_list.append(event['name'])
+                    tournaments.append(gaussheet_funcs.Tournament(tourn_w_brack['name'], event['name'], date, tourney['url'], placements, tourney['weight'], custom_tournament_weights))
+                # if (i % 6 == 0):
+                sleeptime = 2.5
                 time.sleep(sleeptime) # Might be able to remove, but idk, just not to time out API
 
 
@@ -193,15 +225,16 @@ def main():
     players_h2hsets_df.sort_index(axis = 1, inplace = True)
     players_h2hsets_df.to_csv('database_head2heads_sets.csv')
 
-    tourn_pd = pd.DataFrame([tourn_name_list, tourn_date_list, tourn_url_list, tourn_size_list])
+    tourn_pd = pd.DataFrame([tourn_name_list, tourn_event_list, tourn_date_list, tourn_url_list, tourn_size_list])
     tourn_placement_list = pd.DataFrame.from_dict({kk: [item.split(';')[ii] for item in tourn_placement_list[kk] for ii in range(item.count(';'))] for kk in range(len(tourn_name_list))},orient='index').transpose()
     tourn_pd = pd.concat([tourn_pd, tourn_placement_list], ignore_index=True)
     tourn_pd.to_csv('database_tournaments.csv',header=False, index=False)
-
+    elo_file = open("player_elo.csv", "w", encoding = 'utf8')
     for tag, player in players.items():
     # print(f"Set win percentage for {player.tag} is {player.set_percent}")
     # print(f"Game win percentage for {player.tag} is {player.game_percent}")
-        print(f"MEAT ELO for {player.tag} is {player.get_ELO()}")
+        elo_file.write(f"{player.tag},{player.get_ELO()}\n")
+    elo_file.close()
     print("Finished analyzing.")
 
 if __name__ == "__main__":
